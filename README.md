@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inventory Backend
 
-## Getting Started
+Backend sistem inventory, penjualan, dan dashboard untuk demo portfolio.
+Dibangun dengan Next.js (API routes), Prisma 7, dan PostgreSQL.
 
-First, run the development server:
+Dokumentasi API: [docs/API.md](docs/API.md)
+
+## Fitur
+
+- Login dengan 2 role: `OWNER` dan `MANAGER`
+- Manajemen product, barang masuk, penjualan, barang rusak, dan stock adjustment
+- Riwayat perubahan stok (`stock_movements`) dan dashboard laporan
+
+Status: dalam pengembangan. Saat ini baru endpoint auth yang tersedia.
+
+## Prasyarat
+
+- Node.js (versi LTS)
+- Docker (untuk PostgreSQL lokal)
+
+## Cara menjalankan
+
+1. Clone repo, lalu salin file environment:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+   cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   (di PowerShell: `Copy-Item .env.example .env`)
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+2. Jalankan PostgreSQL lewat Docker:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+   docker run --name inventory-db -e POSTGRES_PASSWORD=rahasia123 -e POSTGRES_DB=inventory -p 5433:5432 -d postgres:16
+```
 
-## Learn More
+3. Isi `.env`. Sesuaikan port dengan perintah Docker di atas:
 
-To learn more about Next.js, take a look at the following resources:
+```
+   DATABASE_URL="postgresql://postgres:rahasia123@localhost:5433/inventory"
+   JWT_SECRET="isi-dengan-string-acak"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   Cara membuat `JWT_SECRET` acak: `node -p "require('crypto').randomBytes(32).toString('hex')"`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Install dependency, lalu buat tabel dan data awal:
 
-## Deploy on Vercel
+```bash
+   npm install
+   npx prisma migrate dev
+   npx tsx prisma/seed.js
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+5. Jalankan server development:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+   npm run dev
+```
+
+   API tersedia di `http://localhost:3000/api`.
+
+## Akun demo (development)
+
+- `owner@demo.com` (role OWNER)
+- `manager@demo.com` (role MANAGER)
+
+Password default ada di `prisma/seed.js`, dan bisa diganti lewat variabel `SEED_PASSWORD` di `.env`.
+
+## Script
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | Jalankan server development |
+| `npm test` | Jalankan unit test (Mocha) |
+| `npx prisma studio` | Lihat isi database di browser |
+
+## Struktur folder
+
+- `app/api/` : route API (endpoint)
+- `lib/` : fungsi bersama (auth, format response, Prisma client, hitung HPP)
+- `prisma/` : schema, migrasi, dan seed
+- `test/` : unit test
+- `docs/` : dokumentasi API
