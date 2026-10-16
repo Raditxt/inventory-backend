@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enum dipakai supaya DB menolak nilai ngawur (misal status "succes" typo,
+// seperti di catatan Baskara). Kalau cuma String, typo bisa lolos diam-diam.
+enum Role {
+  OWNER
+  MANAGER
+}
+
+enum ProductStatus {
+  ACTIVE
+  PENDING_APPROVAL // product buatan manager, nunggu owner
+}
+
+enum SaleStatus {
+  PENDING   // boleh dihapus/diedit, BELUM mengubah stok
+  SUCCESS   // sudah mengubah stok, tidak boleh dihapus
+  CANCELLED // dibatalkan, tercatat siapa/kapan/kenapa
+}
+
+enum AdjustmentType {
+  DAMAGED    // kejadian: barang rusak
+  CORRECTION // koreksi hasil hitung fisik vs sistem
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MovementType {
+  STOCK_IN
+  SALE
+  DAMAGED
+  ADJUSTMENT
+  CANCEL_SALE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash") // JANGAN simpan password asli
+  role         Role
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Sisi balik relasi. Nama relasi wajib karena satu model (Sale, StockAdjustment)
+  // punya lebih dari satu foreign key ke User.
+  productsCreated Product[]         @relation("ProductCreatedBy")
+  stockIns        StockIn[]
+  salesCreated    Sale[]            @relation("SaleCreatedBy")
+  salesCancelled  Sale[]            @relation("SaleCancelledBy")
+  adjRequested    StockAdjustment[] @relation("AdjRequestedBy")
+  adjDecided      StockAdjustment[] @relation("AdjDecidedBy")
+  movements       StockMovement[]
+
+  @@map("users")
+}
+
+model Product {
+  id        Int           @id @default(autoincrement())
+  sku       String        @unique
+  name      String
+  category  String
+  unit      String // karung, pcs, kg
+  price     Decimal       @db.Decimal(14, 2) // harga jual
+  avgCost   Decimal       @default(0) @map("avg_cost") @db.Decimal(14, 2) // HPP weighted average
+  stock     Int           @default(0)
+  minStock  Int           @default(0) @map("min_stock") // batas low stock alert
+  status    ProductStatus @default(ACTIVE)
+  createdById Int         @map("created_by")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  createdBy   User              @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  stockIns    StockIn[]
+  saleItems   SaleItem[]
+  adjustments StockAdjustment[]
+  movements   StockMovement[]
+
+  @@map("products")
+}
+
+model StockIn {
+  id          Int      @id @default(autoincrement())
+  productId   Int      @map("product_id")
+  qty         Int
+  unitCost    Decimal  @map("unit_cost") @db.Decimal(14, 2) // harga beli per unit SAAT ITU
+  createdById Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@map("stock_ins")
+}
+
+model Sale {
+  id          Int        @id @default(autoincrement())
+  status      SaleStatus @default(PENDING)
+  total       Decimal    @default(0) @db.Decimal(14, 2) // omzet
+  totalHpp    Decimal    @default(0) @map("total_hpp") @db.Decimal(14, 2)
+  createdById Int        @map("created_by")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  confirmedAt DateTime?  @map("confirmed_at")
+
+  // Field pembatalan nullable: terisi hanya kalau status CANCELLED.
+  cancelledById Int?      @map("cancelled_by")
+  cancelledAt   DateTime? @map("cancelled_at")
+  cancelReason  String?   @map("cancel_reason")
+
+  createdBy   User       @relation("SaleCreatedBy", fields: [createdById], references: [id])
+  cancelledBy User?      @relation("SaleCancelledBy", fields: [cancelledById], references: [id])
+  items       SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id          Int     @id @default(autoincrement())
+  saleId      Int     @map("sale_id")
+  productId   Int     @map("product_id")
+  qty         Int
+  price       Decimal @db.Decimal(14, 2) // harga jual SAAT transaksi
+  hppSnapshot Decimal @map("hpp_snapshot") @db.Decimal(14, 2) // HPP SAAT transaksi
+
+  // Cascade: hapus sale PENDING otomatis hapus item-nya.
+  // Sale SUCCESS tidak pernah dihapus di level aplikasi.
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+model StockAdjustment {
+  id            Int            @id @default(autoincrement())
+  productId     Int            @map("product_id")
+  type          AdjustmentType
+  qtyChange     Int            @map("qty_change") // negatif = stok berkurang
+  reason        String
+  status        ApprovalStatus @default(PENDING)
+  lossValue     Decimal?       @map("loss_value") @db.Decimal(14, 2) // diisi saat APPROVED
+  requestedById Int            @map("requested_by")
+  decidedById   Int?           @map("decided_by")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  decidedAt     DateTime?      @map("decided_at")
+
+  product     Product @relation(fields: [productId], references: [id])
+  requestedBy User    @relation("AdjRequestedBy", fields: [requestedById], references: [id])
+  decidedBy   User?   @relation("AdjDecidedBy", fields: [decidedById], references: [id])
+
+  @@map("stock_adjustments")
+}
+
+// Log audit. Hanya di-INSERT, tidak pernah di-update atau di-delete.
+model StockMovement {
+  id             Int          @id @default(autoincrement())
+  productId      Int          @map("product_id")
+  activityType   MovementType @map("activity_type")
+  quantityChange Int          @map("quantity_change")
+  referenceId    Int?         @map("reference_id") // id sale / stock_in / adjustment, tergantung activityType
+  reason         String?
+  createdById    Int          @map("created_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@index([productId, createdAt])
+  @@map("stock_movements")
+}
