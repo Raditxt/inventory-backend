@@ -1,6 +1,8 @@
+// src/app/api/products/route.js
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { ok, fail, readJson, isUniqueViolation } from "@/lib/http";
+import { parsePagination } from "@/lib/pagination";
 import { parseProductInput } from "@/validators/product";
 import { serializeProduct } from "@/serializers/product";
 
@@ -16,9 +18,9 @@ export async function GET(request) {
   const category = params.get("category");
   const status = params.get("status");
 
-  // Number(null) = 0 dan Number("abc") = NaN. Keduanya falsy, jadi `||` memakai default.
-  const page = Math.max(Number(params.get("page")) || 1, 1);
-  const limit = Math.min(Math.max(Number(params.get("limit")) || 20, 1), 100);
+  // parsePagination menangani default (page=1, limit=20),
+  // clamp (limit 1..100), dan menghitung skip sekali saja.
+  const { page, limit, skip } = parsePagination(params);
 
   const where = {};
   if (search) {
@@ -40,7 +42,7 @@ export async function GET(request) {
     prisma.product.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
+      skip,
       take: limit,
     }),
     prisma.product.count({ where }),

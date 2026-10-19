@@ -81,6 +81,7 @@ Password default ada di `prisma/seed.js`, dan bisa diganti lewat variabel `SEED_
 - `src/domain/` : aturan bisnis murni tanpa database (misal hitung HPP)
 - `src/validators/` : validasi dan pembersihan input
 - `src/serializers/` : bentuk data yang dikirim ke client
+- `src/services/` : logic bisnis yang memakai database (transaksi stok, penjualan)
 - `prisma/` : schema, migrasi, dan seed
 - `test/` : unit test, mengikuti struktur `src/`
 - `docs/` : dokumentasi API

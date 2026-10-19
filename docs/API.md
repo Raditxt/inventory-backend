@@ -134,6 +134,49 @@ Error: 404, 409 `NOT_PENDING`.
 
 ---
 
+---
+## Barang masuk (stock-ins)
+
+Mencatat barang masuk untuk product `ACTIVE`. Dalam satu transaksi, server menambah `stock`, menghitung ulang `avgCost` (weighted average), dan mencatat riwayat stok. Akses: OWNER dan MANAGER.
+
+### POST /stock-ins
+Request (semua wajib, bertipe angka, bukan string):
+
+    { "productId": 1, "qty": 10, "unitCost": 50000 }
+
+- `qty`: bilangan bulat > 0
+- `unitCost`: harga beli per unit, >= 0
+
+Response 201:
+
+    {
+      "data": {
+        "stockIn": { "id": 1, "productId": 1, "qty": 10, "unitCost": 50000, "createdAt": "..." },
+        "product": { "id": 1, "sku": "BRS-001", "stock": 10, "avgCost": 50000, "...": "..." }
+      }
+    }
+
+`product` berisi kondisi terbaru setelah barang masuk. FE bisa langsung memakainya untuk memperbarui tampilan.
+
+Error: 400 `VALIDATION_ERROR`, 401, 404 `NOT_FOUND`, 409 `PRODUCT_NOT_ACTIVE`.
+
+### GET /stock-ins
+Query opsional: `productId`, `page` (default 1), `limit` (default 20, maksimal 100). Urut dari yang terbaru.
+
+Response 200:
+
+    {
+      "data": {
+        "items": [
+          { "id": 2, "productId": 1, "qty": 10, "unitCost": 60000, "createdAt": "...",
+            "product": { "id": 1, "sku": "BRS-001", "name": "Beras 5kg" },
+            "createdBy": { "id": 2, "name": "Manager" } }
+        ],
+        "page": 1, "limit": 20, "total": 2
+      }
+    }
+---
+
 ## Akun demo (hanya development)
 
 - owner@demo.com
