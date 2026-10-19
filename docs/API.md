@@ -67,6 +67,73 @@ Error: 401 `UNAUTHORIZED`.
 
 ---
 
+---
+## Products
+
+Objek product:
+
+    {
+      "id": 1,
+      "sku": "BRS-001",
+      "name": "Beras 5kg",
+      "category": "Sembako",
+      "unit": "karung",
+      "price": 65000,
+      "avgCost": 0,
+      "stock": 0,
+      "minStock": 10,
+      "status": "ACTIVE",
+      "createdAt": "2026-10-16T08:00:00.000Z"
+    }
+
+`status`: `ACTIVE` atau `PENDING_APPROVAL`. `stock` dan `avgCost` (HPP weighted average) tidak bisa diisi lewat endpoint products, keduanya berubah lewat barang masuk dan penjualan.
+
+Hak akses:
+
+| Endpoint | OWNER | MANAGER |
+|---|---|---|
+| GET /products, GET /products/:id | ya | ya |
+| POST /products | ya (langsung ACTIVE) | ya (jadi PENDING_APPROVAL) |
+| PATCH /products/:id | ya | hanya product miliknya yang masih PENDING_APPROVAL |
+| DELETE /products/:id | ya | tidak |
+| POST /products/:id/approve | ya | tidak |
+
+### GET /products
+Query opsional: `search` (nama atau SKU), `category`, `status`, `page` (default 1), `limit` (default 20, maksimal 100).
+
+Response 200:
+
+    { "data": { "items": [ { ...product } ], "page": 1, "limit": 20, "total": 1 } }
+
+### POST /products
+Request (semua wajib kecuali `minStock`, default 0):
+
+    { "sku": "BRS-001", "name": "Beras 5kg", "category": "Sembako",
+      "unit": "karung", "price": 65000, "minStock": 10 }
+
+Response 201: `{ "data": { "product": { ... } } }`
+Error: 400 `VALIDATION_ERROR`, 403, 409 `SKU_TAKEN`.
+
+### GET /products/:id
+Response 200: `{ "data": { "product": { ... } } }`. Error: 404 `NOT_FOUND`.
+
+### PATCH /products/:id
+Kirim hanya field yang diubah: `sku`, `name`, `category`, `unit`, `price`, `minStock`.
+Response 200: `{ "data": { "product": { ... } } }`
+Error: 400, 403 `FORBIDDEN`, 404, 409 `SKU_TAKEN`.
+
+### DELETE /products/:id
+Hanya OWNER. Product yang sudah punya riwayat (barang masuk, penjualan, dst) tidak bisa dihapus. Menolak product pending dari manager = menghapusnya.
+Response 200: `{ "data": { "id": 1 } }`
+Error: 404, 409 `HAS_HISTORY`.
+
+### POST /products/:id/approve
+Hanya OWNER. Mengubah status `PENDING_APPROVAL` menjadi `ACTIVE`. Tanpa body.
+Response 200: `{ "data": { "product": { ... } } }`
+Error: 404, 409 `NOT_PENDING`.
+
+---
+
 ## Akun demo (hanya development)
 
 - owner@demo.com
