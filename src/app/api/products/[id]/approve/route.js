@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { ok, fail, parseId } from "@/lib/http";
-import { serializeProduct } from "@/lib/serialize";
+import { serializeProduct } from "@/serializers/product";
 
 export async function POST(request, { params }) {
   const { error } = requireAuth(request, ["OWNER"]);

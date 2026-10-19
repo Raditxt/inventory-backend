@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { parseProductInput } from "../lib/products.js";
+import { parseProductInput } from "../../src/validators/product.js";
 
 const valid = {
   sku: " BRS-001 ",

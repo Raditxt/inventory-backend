@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { weightedAverageCost } from "../lib/cost.js";
+import { weightedAverageCost } from "../../src/domain/cost.js";
 
 describe("weightedAverageCost", () => {
   it("merata-ratakan harga beli yang berbeda", () => {

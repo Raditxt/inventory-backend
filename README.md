@@ -76,8 +76,11 @@ Password default ada di `prisma/seed.js`, dan bisa diganti lewat variabel `SEED_
 
 ## Struktur folder
 
-- `app/api/` : route API (endpoint)
-- `lib/` : fungsi bersama (auth, format response, Prisma client, hitung HPP)
+- `src/app/api/` : route handler (endpoint), hanya mengurus HTTP
+- `src/lib/` : infrastruktur bersama (Prisma client, auth, format response)
+- `src/domain/` : aturan bisnis murni tanpa database (misal hitung HPP)
+- `src/validators/` : validasi dan pembersihan input
+- `src/serializers/` : bentuk data yang dikirim ke client
 - `prisma/` : schema, migrasi, dan seed
-- `test/` : unit test
+- `test/` : unit test, mengikuti struktur `src/`
 - `docs/` : dokumentasi API

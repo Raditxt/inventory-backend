@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { ok, fail, readJson, isUniqueViolation } from "@/lib/http";
-import { parseProductInput } from "@/lib/products";
-import { serializeProduct } from "@/lib/serialize";
+import { parseProductInput } from "@/validators/product";
+import { serializeProduct } from "@/serializers/product";
 
 const STATUSES = ["ACTIVE", "PENDING_APPROVAL"];
 

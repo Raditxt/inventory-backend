@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { ok, fail, readJson, parseId, isUniqueViolation } from "@/lib/http";
-import { parseProductInput } from "@/lib/products";
-import { serializeProduct } from "@/lib/serialize";
+import { parseProductInput } from "@/validators/product";
+import { serializeProduct } from "@/serializers/product";
 
 // Di Next.js versi baru, `params` berupa Promise, jadi harus di-await.
 async function getId(params) {
