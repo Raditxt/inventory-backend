@@ -26,3 +26,13 @@ export function parseId(raw) {
 
 // Kode error Prisma untuk pelanggaran kolom unik (misal SKU kembar).
 export const isUniqueViolation = (err) => err?.code === "P2002";
+
+// Menerjemahkan hasil service ({ data } atau { failure }) menjadi response HTTP.
+// `build` mengubah data dari service menjadi isi response.
+export function fromResult(result, build, status = 200) {
+  if (result.failure) {
+    const { status: failStatus, code, message } = result.failure;
+    return fail(failStatus, code, message);
+  }
+  return ok(build(result.data), status);
+}
