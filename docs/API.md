@@ -298,6 +298,88 @@ Error: 404, 409 `NOT_PENDING`, 409 `INSUFFICIENT_STOCK` (pesan menyebut product 
 Request: `{ "reason": "Customer batal" }` (wajib, maksimal 500 karakter). Stok dikembalikan.
 Error: 400, 404, 409 `NOT_CANCELLABLE` (masih PENDING, gunakan DELETE), 409 `ALREADY_CANCELLED`.
 
+
+---
+
+## Dashboard
+
+Hanya OWNER. Semua angka dalam rupiah. Zona waktu laporan: Asia/Jakarta (WIB), satu "hari" dihitung dari tengah malam WIB.
+
+Endpoint `summary` dan `sales-trend` menerima periode lewat query `from` dan `to` (format `YYYY-MM-DD`, kedua tanggal **ikut dihitung**). Kalau tidak diisi, defaultnya 30 hari terakhir sampai hari ini. Maksimal 366 hari.
+
+- Penjualan dihitung berdasarkan **waktu konfirmasi**, hanya yang berstatus `SUCCESS`. Penjualan yang dibatalkan tidak masuk omzet.
+- Kerugian barang rusak dihitung dari adjustment `DAMAGED` yang disetujui, berdasarkan **waktu disetujui**.
+- `inventory` dan stok rendah adalah **kondisi saat ini**, tidak terpengaruh periode. Hanya product `ACTIVE`.
+
+### GET /dashboard/summary
+
+Response 200:
+
+    {
+      "data": {
+        "period": { "from": "2026-09-24", "to": "2026-10-23", "timezone": "Asia/Jakarta" },
+        "sales": {
+          "count": 1,
+          "omzet": 181000,
+          "hpp": 146000,
+          "grossProfit": 35000,
+          "grossMarginPercent": 19.34,
+          "cancelledCount": 2
+        },
+        "damaged": { "count": 2, "units": 4, "lossValue": 220000 },
+        "profitAfterLoss": -185000,
+        "inventory": {
+          "productCount": 2,
+          "totalUnits": 65,
+          "totalValue": 1554000,
+          "lowStockCount": 0,
+          "outOfStockCount": 0
+        }
+      }
+    }
+
+- `grossProfit` = `omzet` - `hpp`. `grossMarginPercent` bernilai 0 kalau omzet 0.
+- `profitAfterLoss` = `grossProfit` - `damaged.lossValue`. Ini **bukan laba bersih**, karena biaya operasional belum dihitung.
+- `inventory.totalValue` = jumlah (stok x HPP rata-rata) semua product aktif.
+- `cancelledCount` = penjualan yang dibatalkan pada periode tersebut.
+
+Error: 400 `VALIDATION_ERROR` (tanggal tidak valid, `from` setelah `to`, rentang lebih dari 366 hari), 401, 403.
+
+### GET /dashboard/sales-trend
+Omzet per hari untuk grafik. Selalu satu entri per hari di periode (hari tanpa penjualan berisi nol).
+
+Response 200:
+
+    {
+      "data": {
+        "period": { "from": "2026-10-21", "to": "2026-10-23", "timezone": "Asia/Jakarta" },
+        "series": [
+          { "date": "2026-10-21", "count": 0, "omzet": 0, "hpp": 0, "grossProfit": 0 },
+          { "date": "2026-10-22", "count": 0, "omzet": 0, "hpp": 0, "grossProfit": 0 },
+          { "date": "2026-10-23", "count": 1, "omzet": 181000, "hpp": 146000, "grossProfit": 35000 }
+        ]
+      }
+    }
+
+Error: sama seperti `summary`.
+
+### GET /dashboard/low-stock
+Product aktif dengan `stock <= minStock` (termasuk yang stoknya habis), diurutkan dari stok paling sedikit. Query opsional: `page`, `limit`.
+
+Response 200:
+
+    {
+      "data": {
+        "items": [
+          { "id": 1, "sku": "BRS-001", "name": "Beras 5kg", "category": "Sembako", "unit": "karung",
+            "stock": 9, "minStock": 10, "shortage": 1, "isOutOfStock": false }
+        ],
+        "page": 1, "limit": 20, "total": 1
+      }
+    }
+
+`shortage` = `minStock` - `stock`.
+
 ## Akun demo (hanya development)
 
 - owner@demo.com
@@ -306,4 +388,4 @@ Error: 400, 404, 409 `NOT_CANCELLABLE` (masih PENDING, gunakan DELETE), 409 `ALR
 Password dikirim terpisah.
 
 ## Segera menyusul
-Riwayat stok (`GET /stock-movements`) dan dashboard (omzet, HPP, laba kotor, nilai persediaan, stok rendah, kerugian barang rusak).
+Riwayat stok (`GET /stock-movements`).
