@@ -11,6 +11,8 @@ Format: semua request dan response berupa JSON.
 
 Token berlaku 8 jam. Kalau habis, server membalas 401 dan FE harus mengarahkan user ke halaman login.
 
+**CORS.** Browser dari origin lain boleh memanggil API ini. Di development semua origin diizinkan. Untuk produksi, origin diatur lewat environment `CORS_ORIGIN`.
+
 **Format response sukses**
 
     { "data": { ... } }
@@ -65,9 +67,9 @@ Response 200:
 
 Error: 401 `UNAUTHORIZED`.
 
----
 
 ---
+
 ## Products
 
 Objek product:
@@ -380,12 +382,45 @@ Response 200:
 
 `shortage` = `minStock` - `stock`.
 
+
+---
+
+## Riwayat stok (stock-movements)
+
+Catatan audit otomatis untuk setiap perubahan stok (barang masuk, penjualan, pembatalan, barang rusak, koreksi). Tidak bisa diubah atau dihapus lewat API. Akses: OWNER dan MANAGER.
+
+### GET /stock-movements
+Query opsional: `productId`, `type` (`STOCK_IN`, `SALE`, `CANCEL_SALE`, `DAMAGED`, `ADJUSTMENT`), `from` dan `to` (`YYYY-MM-DD`, kedua tanggal ikut dihitung, zona Asia/Jakarta, maksimal 366 hari), `page`, `limit`. Tanpa `from` dan `to` berarti semua riwayat. Urut dari yang terbaru.
+
+Response 200:
+
+    {
+      "data": {
+        "items": [
+          {
+            "id": 12,
+            "type": "SALE",
+            "quantityChange": -3,
+            "product": { "id": 4, "sku": "GLA-003", "name": "Gula 1kg" },
+            "reference": { "type": "SALE", "id": 5 },
+            "reason": null,
+            "createdBy": { "id": 2, "name": "Manager" },
+            "createdAt": "2026-10-23T05:00:00.000Z"
+          }
+        ],
+        "page": 1, "limit": 20, "total": 12
+      }
+    }
+
+- `quantityChange` positif berarti stok bertambah, negatif berarti berkurang.
+- `reference.type` menunjukkan sumbernya (`STOCK_IN`, `SALE`, atau `ADJUSTMENT`), dan `reference.id` adalah id di tabel itu (bisa dipakai FE untuk membuka detailnya). `reference` bernilai `null` kalau tidak ada.
+- `reason` terisi untuk barang rusak, koreksi, dan pembatalan.
+
+Error: 400 `VALIDATION_ERROR`, 401.
+
 ## Akun demo (hanya development)
 
 - owner@demo.com
 - manager@demo.com
 
 Password dikirim terpisah.
-
-## Segera menyusul
-Riwayat stok (`GET /stock-movements`).
