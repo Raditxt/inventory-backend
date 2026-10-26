@@ -33,6 +33,7 @@ FE cukup menampilkan `message` ke user dan memakai `code` untuk logika.
 | 403 | Role tidak punya izin (`FORBIDDEN`) |
 | 404 | Data tidak ditemukan (`NOT_FOUND`) |
 | 409 | Bentrok aturan bisnis (misal stok tidak cukup) |
+| 429 | Terlalu banyak percobaan login (`TOO_MANY_ATTEMPTS`). Tunggu sebanyak detik di header `Retry-After` |
 
 **Role:** `OWNER` dan `MANAGER`.
 
@@ -56,7 +57,7 @@ Response 200:
       }
     }
 
-Error: 400 `VALIDATION_ERROR`, 401 `INVALID_CREDENTIALS`.
+Error: 400 `VALIDATION_ERROR`, 401 `INVALID_CREDENTIALS`, 429 `TOO_MANY_ATTEMPTS` (lebih dari 5 kegagalan dalam 15 menit untuk akun yang sama dari IP yang sama, atau 20 kegagalan dari satu IP). Header `Retry-After` berisi sisa waktu dalam detik; FE cukup menampilkan `message`-nya.
 
 ### GET /auth/me
 Butuh token. Dipakai FE untuk cek sesi dan mengambil role saat halaman dibuka ulang.
