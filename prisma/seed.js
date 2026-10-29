@@ -6,7 +6,6 @@ import { PrismaClient } from "../generated/prisma/client";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// Password khusus development. Jangan dipakai di server sungguhan.
 const password = process.env.SEED_PASSWORD ?? "ganti-ini-123";
 
 async function main() {
@@ -18,8 +17,6 @@ async function main() {
   ];
 
   for (const u of users) {
-    // upsert: kalau email sudah ada, tidak dibuat dobel.
-    // Jadi script ini aman dijalankan berkali-kali.
     await prisma.user.upsert({
       where: { email: u.email },
       update: {},

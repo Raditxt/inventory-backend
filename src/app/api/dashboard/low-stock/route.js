@@ -3,7 +3,6 @@ import { ok } from "@/lib/http";
 import { parsePagination } from "@/lib/pagination";
 import { getLowStock } from "@/services/dashboard.service";
 
-// GET /api/dashboard/low-stock?page=1&limit=20
 export async function GET(request) {
   const { error } = requireAuth(request, ["OWNER"]);
   if (error) return error;

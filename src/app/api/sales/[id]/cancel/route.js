@@ -5,8 +5,6 @@ import { serializeSale } from "@/serializers/sale";
 import { cancelSale } from "@/services/sale.service";
 
 export async function POST(request, { params }) {
-  // Asumsi: owner dan manager boleh membatalkan. Ganti array ini kalau Baskara
-  // mau membatasinya ke owner saja.
   const { auth, error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
 

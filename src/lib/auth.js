@@ -1,33 +1,31 @@
 import jwt from "jsonwebtoken";
 import { fail } from "@/lib/http";
+import { validateJwtSecret } from "@/domain/security";
 
 function getSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET belum diisi di .env");
-  return secret;
+  const problem = validateJwtSecret(process.env.JWT_SECRET);
+  if (problem) throw new Error(problem);
+  return process.env.JWT_SECRET;
 }
 
 export function signToken(payload) {
-  return jwt.sign(payload, getSecret(), { expiresIn: "8h" });
+  return jwt.sign(payload, getSecret(), { algorithm: "HS256", expiresIn: "8h" });
 }
 
-// Mengembalikan payload token kalau valid, atau null kalau tidak.
+
 export function getAuth(request) {
   const header = request.headers.get("authorization") ?? "";
   const [scheme, token] = header.split(" ");
   if (scheme !== "Bearer" || !token) return null;
 
+  const secret = getSecret();
   try {
-    return jwt.verify(token, getSecret());
+    return jwt.verify(token, secret, { algorithms: ["HS256"] });
   } catch {
     return null;
   }
 }
 
-// Pemakaian di endpoint:
-//   const { auth, error } = requireAuth(request, ["OWNER"]);
-//   if (error) return error;
-// Kalau allowedRoles tidak diisi, semua user yang sudah login boleh.
 export function requireAuth(request, allowedRoles) {
   const auth = getAuth(request);
   if (!auth) {

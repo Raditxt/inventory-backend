@@ -11,13 +11,13 @@ export function parseSaleInput(body) {
 
   const items = [];
   const errors = [];
-  const seen = new Set(); // untuk mendeteksi productId kembar
+  const seen = new Set(); 
 
   body.items.forEach((item, index) => {
     const label = `items[${index}]`;
     if (item === null || typeof item !== "object") {
       errors.push(`${label} harus berupa object`);
-      return; // di dalam forEach, return berarti "lanjut ke item berikutnya"
+      return; 
     }
 
     let valid = true;

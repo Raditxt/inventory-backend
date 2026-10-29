@@ -13,7 +13,6 @@ describe("hitungan penjualan", () => {
   });
 
   it("dibulatkan, bebas dari galat desimal JavaScript", () => {
-    // 0.1 * 3 di JavaScript = 0.30000000000000004
     assert.strictEqual(calcLineTotal(0.1, 3), 0.3);
   });
 

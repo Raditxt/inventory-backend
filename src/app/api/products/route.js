@@ -8,7 +8,6 @@ import { serializeProduct } from "@/serializers/product";
 
 const STATUSES = ["ACTIVE", "PENDING_APPROVAL"];
 
-// GET /api/products?search=beras&category=Sembako&status=ACTIVE&page=1&limit=20
 export async function GET(request) {
   const { error } = requireAuth(request);
   if (error) return error;
@@ -18,8 +17,6 @@ export async function GET(request) {
   const category = params.get("category");
   const status = params.get("status");
 
-  // parsePagination menangani default (page=1, limit=20),
-  // clamp (limit 1..100), dan menghitung skip sekali saja.
   const { page, limit, skip } = parsePagination(params);
 
   const where = {};
@@ -37,7 +34,6 @@ export async function GET(request) {
     where.status = status;
   }
 
-  // Dua query berjalan bersamaan, lalu keduanya ditunggu.
   const [items, total] = await Promise.all([
     prisma.product.findMany({
       where,
@@ -51,7 +47,6 @@ export async function GET(request) {
   return ok({ items: items.map(serializeProduct), page, limit, total });
 }
 
-// POST /api/products
 export async function POST(request) {
   const { auth, error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
@@ -69,14 +64,12 @@ export async function POST(request) {
     const product = await prisma.product.create({
       data: {
         ...data,
-        // Owner langsung aktif, manager menunggu approval.
         status: auth.role === "OWNER" ? "ACTIVE" : "PENDING_APPROVAL",
         createdById: auth.userId,
       },
     });
     return ok({ product: serializeProduct(product) }, 201);
   } catch (err) {
-    // Jaga-jaga kalau dua request dengan SKU sama masuk bersamaan.
     if (isUniqueViolation(err)) {
       return fail(409, "SKU_TAKEN", "SKU sudah dipakai product lain");
     }

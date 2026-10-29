@@ -9,7 +9,6 @@ import {
 import { serializeAdjustment } from "@/serializers/adjustment";
 import { createAdjustment, listAdjustments } from "@/services/adjustment.service";
 
-// POST /api/adjustments
 export async function POST(request) {
   const { auth, error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
@@ -24,7 +23,6 @@ export async function POST(request) {
   return fromResult(result, (d) => ({ adjustment: serializeAdjustment(d.adjustment) }), 201);
 }
 
-// GET /api/adjustments?status=PENDING&type=DAMAGED&productId=1&page=1&limit=20
 export async function GET(request) {
   const { auth, error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
@@ -34,7 +32,6 @@ export async function GET(request) {
 
   const where = {};
 
-  // Manager hanya boleh melihat pengajuan miliknya sendiri.
   if (auth.role === "MANAGER") where.requestedById = auth.userId;
 
   const status = params.get("status");

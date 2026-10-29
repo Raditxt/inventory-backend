@@ -10,29 +10,23 @@ const summaryInclude = {
 };
 
 const detailInclude = {
-  ...summaryInclude, // salin semua properti summaryInclude, lalu tambah items
+  ...summaryInclude, 
   items: {
     orderBy: { id: "asc" },
     include: { product: { select: { id: true, sku: true, name: true, unit: true } } },
   },
 };
 
-// Transaksi dengan banyak item bisa lebih lama dari batas bawaan Prisma (5 detik),
-// terutama kalau database-nya jauh.
+
 const TX_OPTIONS = { timeout: 15000 };
 
-// Kunci baris sale. Hapus, konfirmasi, dan batal untuk sale yang sama jadi bergantian.
 async function lockSale(tx, id) {
   await tx.$queryRaw`SELECT id FROM sales WHERE id = ${id} FOR UPDATE`;
   return tx.sale.findUnique({ where: { id }, include: { items: true } });
 }
 
-// Kunci product satu per satu, URUT dari id terkecil. Urutan yang sama di semua
-// transaksi mencegah deadlock: A mengunci product 1 lalu 2, sementara B mengunci
-// 2 lalu 1, sehingga keduanya saling menunggu selamanya.
-// Mengembalikan Map: productId -> product (kondisi terbaru setelah dikunci).
+
 async function lockProducts(tx, productIds) {
-  // sort() tanpa pembanding mengurutkan sebagai teks, jadi 10 muncul sebelum 9.
   const sorted = [...new Set(productIds)].sort((a, b) => a - b);
   for (const id of sorted) {
     await tx.$queryRaw`SELECT id FROM products WHERE id = ${id} FOR UPDATE`;
@@ -62,11 +56,10 @@ export async function createSale({ items, userId }) {
       productId: item.productId,
       qty: item.qty,
       price: Number(product.price),
-      hpp: Number(product.avgCost), // sementara, nilai final dikunci saat konfirmasi
+      hpp: Number(product.avgCost), 
     };
   });
 
-  // Nested create: sale dan semua item-nya tersimpan sekaligus atau tidak sama sekali.
   const sale = await prisma.sale.create({
     data: {
       createdById: userId,
@@ -95,8 +88,7 @@ export async function confirmSale({ id, userId }) {
 
     const products = await lockProducts(tx, sale.items.map((i) => i.productId));
 
-    // Semua pengecekan DULU, sebelum ada yang ditulis. return failure tidak
-    // membatalkan transaksi, hanya throw yang melakukannya.
+
     for (const item of sale.items) {
       const product = products.get(item.productId);
       if (product.status !== "ACTIVE") {
@@ -114,7 +106,7 @@ export async function confirmSale({ id, userId }) {
     const lines = [];
     for (const item of sale.items) {
       const product = products.get(item.productId);
-      const hpp = Number(product.avgCost); // HPP dikunci di sini
+      const hpp = Number(product.avgCost); 
       lines.push({ hpp, qty: item.qty });
 
       await tx.saleItem.update({ where: { id: item.id }, data: { hppSnapshot: hpp } });
@@ -153,8 +145,7 @@ export async function cancelSale({ id, userId, reason }) {
       return failure(409, "ALREADY_CANCELLED", "Penjualan ini sudah dibatalkan");
     }
 
-    // Product tetap dikunci, supaya tidak bentrok dengan barang masuk yang
-    // sedang menghitung ulang avgCost dari stok yang dibacanya.
+
     await lockProducts(tx, sale.items.map((i) => i.productId));
 
     for (const item of sale.items) {
@@ -189,8 +180,6 @@ export async function cancelSale({ id, userId, reason }) {
 }
 
 export async function deletePendingSale(id) {
-  // Penghapusan bersyarat dalam SATU query: hanya terhapus kalau masih PENDING.
-  // Kalau konfirmasi masuk bersamaan, salah satu pasti menunggu yang lain.
   const { count } = await prisma.sale.deleteMany({ where: { id, status: "PENDING" } });
   if (count === 1) return { data: { id } };
 

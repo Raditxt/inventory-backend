@@ -6,7 +6,6 @@ import { MOVEMENT_TYPES } from "@/domain/movement";
 import { serializeMovement } from "@/serializers/movement";
 import { listMovements } from "@/services/movement.service";
 
-// GET /api/stock-movements?productId=1&type=SALE&from=2026-10-01&to=2026-10-31&page=1&limit=20
 export async function GET(request) {
   const { error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
@@ -30,7 +29,6 @@ export async function GET(request) {
     where.activityType = type;
   }
 
-  // Berbeda dengan dashboard: tanpa from/to berarti SEMUA riwayat, bukan 30 hari terakhir.
   if (params.has("from") || params.has("to")) {
     const parsed = parsePeriod(params);
     if (parsed.error) return fail(400, "VALIDATION_ERROR", parsed.error);

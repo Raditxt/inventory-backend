@@ -1,9 +1,7 @@
 import { calcLineTotal, calcGrossProfit } from "@/domain/sale";
 
-// Ringkasan untuk daftar. Mengasumsikan query memakai include createdBy, cancelledBy, _count.
 export function serializeSaleSummary(s) {
   const total = Number(s.total);
-  // totalHpp baru final saat dikonfirmasi. Selama PENDING nilainya belum bermakna.
   const totalHpp = s.status === "PENDING" ? null : Number(s.totalHpp);
 
   return {
@@ -21,8 +19,6 @@ export function serializeSaleSummary(s) {
     cancelReason: s.cancelReason,
   };
 }
-
-// Detail = ringkasan + daftar item.
 export function serializeSale(s) {
   const pending = s.status === "PENDING";
   return {

@@ -4,7 +4,6 @@ import { ok, fail, readJson, parseId, isUniqueViolation } from "@/lib/http";
 import { parseProductInput } from "@/validators/product";
 import { serializeProduct } from "@/serializers/product";
 
-// Di Next.js versi baru, `params` berupa Promise, jadi harus di-await.
 async function getId(params) {
   const { id: rawId } = await params;
   return parseId(rawId);
@@ -86,7 +85,6 @@ export async function DELETE(request, { params }) {
   });
   if (!product) return fail(404, "NOT_FOUND", "Product tidak ditemukan");
 
-  // Product yang sudah punya riwayat tidak boleh dihapus, supaya audit trail utuh.
   const hasHistory = Object.values(product._count).some((n) => n > 0);
   if (hasHistory) {
     return fail(409, "HAS_HISTORY", "Product sudah punya riwayat transaksi dan tidak bisa dihapus");

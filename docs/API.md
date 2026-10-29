@@ -1,4 +1,4 @@
-# API Inventory & Penjualan (v0 draft)
+# API Inventory & Penjualan (v1)
 
 Base URL (dev): `http://localhost:3000/api`
 Format: semua request dan response berupa JSON.
@@ -37,6 +37,15 @@ FE cukup menampilkan `message` ke user dan memakai `code` untuk logika.
 
 **Role:** `OWNER` dan `MANAGER`.
 
+**Konvensi data**
+
+- Semua endpoint selain `POST /auth/login` butuh token. Tanpa token atau token kedaluwarsa: `401 UNAUTHORIZED`. Role tidak diizinkan: `403 FORBIDDEN`. Karena berlaku di semua tempat, dua kode ini tidak diulang di tiap endpoint.
+- Request yang berisi body harus mengirim header `Content-Type: application/json`. Endpoint aksi seperti `approve`, `reject`, dan `confirm` tidak memakai body.
+- Semua `id` berupa bilangan bulat.
+- Jumlah uang (harga, HPP, omzet, dan sebagainya) berupa angka dalam rupiah, bisa berdesimal (misal `12304249.46`). Angka ini dikirim sebagai number, bukan string.
+- Waktu (`createdAt` dan sejenisnya) berupa teks ISO 8601 dalam UTC, misalnya `2026-10-23T05:00:00.000Z`. FE yang mengubahnya ke jam lokal. Tanggal tanpa jam (`from`, `to`, `date`) berformat `YYYY-MM-DD` dan dihitung menurut WIB.
+- Endpoint daftar mengembalikan `{ items, page, limit, total }`. Query `page` (default 1) dan `limit` (default 20, maksimal 100) berlaku untuk semuanya.
+
 ---
 
 ## Auth
@@ -67,7 +76,6 @@ Response 200:
     { "data": { "user": { "id": 1, "name": "Owner", "email": "owner@demo.com", "role": "OWNER" } } }
 
 Error: 401 `UNAUTHORIZED`.
-
 
 ---
 
@@ -137,7 +145,6 @@ Error: 404, 409 `NOT_PENDING`.
 
 ---
 
----
 ## Barang masuk (stock-ins)
 
 Mencatat barang masuk untuk product `ACTIVE`. Dalam satu transaksi, server menambah `stock`, menghitung ulang `avgCost` (weighted average), dan mencatat riwayat stok. Akses: OWNER dan MANAGER.
@@ -161,7 +168,7 @@ Response 201:
 
 `product` berisi kondisi terbaru setelah barang masuk. FE bisa langsung memakainya untuk memperbarui tampilan.
 
-Error: 400 `VALIDATION_ERROR`, 401, 404 `NOT_FOUND`, 409 `PRODUCT_NOT_ACTIVE`.
+Error: 400 `VALIDATION_ERROR`, 404 `NOT_FOUND`, 409 `PRODUCT_NOT_ACTIVE`.
 
 ### GET /stock-ins
 Query opsional: `productId`, `page` (default 1), `limit` (default 20, maksimal 100). Urut dari yang terbaru.
@@ -178,8 +185,6 @@ Response 200:
         "page": 1, "limit": 20, "total": 2
       }
     }
----
-
 
 ---
 
@@ -301,7 +306,6 @@ Error: 404, 409 `NOT_PENDING`, 409 `INSUFFICIENT_STOCK` (pesan menyebut product 
 Request: `{ "reason": "Customer batal" }` (wajib, maksimal 500 karakter). Stok dikembalikan.
 Error: 400, 404, 409 `NOT_CANCELLABLE` (masih PENDING, gunakan DELETE), 409 `ALREADY_CANCELLED`.
 
-
 ---
 
 ## Dashboard
@@ -346,7 +350,7 @@ Response 200:
 - `inventory.totalValue` = jumlah (stok x HPP rata-rata) semua product aktif.
 - `cancelledCount` = penjualan yang dibatalkan pada periode tersebut.
 
-Error: 400 `VALIDATION_ERROR` (tanggal tidak valid, `from` setelah `to`, rentang lebih dari 366 hari), 401, 403.
+Error: 400 `VALIDATION_ERROR` (tanggal tidak valid, `from` setelah `to`, rentang lebih dari 366 hari).
 
 ### GET /dashboard/sales-trend
 Omzet per hari untuk grafik. Selalu satu entri per hari di periode (hari tanpa penjualan berisi nol).
@@ -383,7 +387,6 @@ Response 200:
 
 `shortage` = `minStock` - `stock`.
 
-
 ---
 
 ## Riwayat stok (stock-movements)
@@ -417,7 +420,9 @@ Response 200:
 - `reference.type` menunjukkan sumbernya (`STOCK_IN`, `SALE`, atau `ADJUSTMENT`), dan `reference.id` adalah id di tabel itu (bisa dipakai FE untuk membuka detailnya). `reference` bernilai `null` kalau tidak ada.
 - `reason` terisi untuk barang rusak, koreksi, dan pembatalan.
 
-Error: 400 `VALIDATION_ERROR`, 401.
+Error: 400 `VALIDATION_ERROR`.
+
+---
 
 ## Akun demo (hanya development)
 

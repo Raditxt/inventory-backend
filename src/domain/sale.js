@@ -2,12 +2,10 @@ const round2 = (n) => Math.round(n * 100) / 100;
 
 export const calcLineTotal = (price, qty) => round2(price * qty);
 
-// lines: [{ price, qty }] -> omzet
 export function calcTotal(lines) {
   return round2(lines.reduce((sum, l) => sum + calcLineTotal(l.price, l.qty), 0));
 }
 
-// lines: [{ hpp, qty }] -> total HPP
 export function calcTotalHpp(lines) {
   return round2(lines.reduce((sum, l) => sum + calcLineTotal(l.hpp, l.qty), 0));
 }

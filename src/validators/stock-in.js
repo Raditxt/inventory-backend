@@ -1,5 +1,3 @@
-// Hanya menerima angka sungguhan. "5" (string) ditolak karena FE
-// seharusnya mengirim number, bukan teks.
 export function parseStockInInput(body) {
   const data = {};
   const errors = [];

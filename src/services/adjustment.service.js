@@ -9,13 +9,11 @@ const include = {
   decidedBy: { select: { id: true, name: true } },
 };
 
-// Kunci baris product, lalu baca kondisi terbarunya. Hanya di dalam transaksi.
 async function lockAndLoadProduct(tx, productId) {
   await tx.$queryRaw`SELECT id FROM products WHERE id = ${productId} FOR UPDATE`;
   return tx.product.findUnique({ where: { id: productId } });
 }
 
-// Cek aturan SEBELUM ada yang ditulis. Mengembalikan failure, atau null kalau aman.
 function checkCanApply(product, qtyChange) {
   if (!product) return failure(404, "NOT_FOUND", "Product tidak ditemukan");
   if (product.status !== "ACTIVE") {
@@ -31,7 +29,6 @@ function checkCanApply(product, qtyChange) {
   return null;
 }
 
-// Menulis perubahan stok dan log. Hanya dipanggil setelah checkCanApply lolos.
 async function applyStockChange(tx, { adjustmentId, productId, type, qtyChange, reason, deciderId }) {
   await tx.product.update({
     where: { id: productId },
@@ -49,7 +46,6 @@ async function applyStockChange(tx, { adjustmentId, productId, type, qtyChange, 
   });
 }
 
-// Dipakai approve dan reject untuk mengetahui product mana yang harus dikunci.
 async function findProductIdOf(adjustmentId) {
   const row = await prisma.stockAdjustment.findUnique({
     where: { id: adjustmentId },
@@ -59,7 +55,6 @@ async function findProductIdOf(adjustmentId) {
 }
 
 export async function createAdjustment({ productId, type, qtyChange, reason, userId, role }) {
-  // MANAGER: hanya mengajukan. Stok tidak disentuh, jadi tidak perlu transaksi.
   if (role === "MANAGER") {
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) return failure(404, "NOT_FOUND", "Product tidak ditemukan");
@@ -111,9 +106,6 @@ export async function approveAdjustment({ id, userId }) {
 
   return prisma.$transaction(async (tx) => {
     const product = await lockAndLoadProduct(tx, productId);
-
-    // Baca adjustment SETELAH kunci didapat. Kalau ada request approve lain
-    // yang baru selesai, statusnya sudah berubah dan kita berhenti di sini.
     const adjustment = await tx.stockAdjustment.findUnique({ where: { id } });
     if (adjustment.status !== "PENDING") {
       return failure(409, "NOT_PENDING", "Adjustment ini sudah diproses");
@@ -149,8 +141,6 @@ export async function rejectAdjustment({ id, userId }) {
   if (!productId) return failure(404, "NOT_FOUND", "Adjustment tidak ditemukan");
 
   return prisma.$transaction(async (tx) => {
-    // Kunci product yang sama dengan approve, supaya approve dan reject
-    // untuk adjustment yang sama tidak bisa berjalan bersamaan.
     await tx.$queryRaw`SELECT id FROM products WHERE id = ${productId} FOR UPDATE`;
 
     const adjustment = await tx.stockAdjustment.findUnique({ where: { id } });

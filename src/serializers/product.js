@@ -6,7 +6,7 @@ export function serializeProduct(p) {
     category: p.category,
     unit: p.unit,
     price: Number(p.price),
-    avgCost: Number(p.avgCost), // HPP weighted average
+    avgCost: Number(p.avgCost), 
     stock: p.stock,
     minStock: p.minStock,
     status: p.status,

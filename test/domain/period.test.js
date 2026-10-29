@@ -8,7 +8,7 @@ import {
 } from "../../src/domain/period.js";
 
 const params = (qs) => new URLSearchParams(qs);
-const NOW = new Date("2026-10-21T05:00:00Z"); // 12:00 WIB
+const NOW = new Date("2026-10-21T05:00:00Z"); 
 
 describe("isValidDateString", () => {
   it("menerima tanggal nyata, termasuk 29 Februari tahun kabisat", () => {

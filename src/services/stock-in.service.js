@@ -1,18 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { weightedAverageCost } from "@/domain/cost";
 
-// Service mengembalikan { data } kalau berhasil, atau { failure } kalau
-// ditolak karena aturan bisnis. Route yang menerjemahkannya ke HTTP.
+
 const failure = (status, code, message) => ({ failure: { status, code, message } });
 
 export async function createStockIn({ productId, qty, unitCost, userId }) {
-  // Semua langkah di dalam callback ini berjalan sebagai SATU transaksi.
-  // Kalau ada error di tengah, semua perubahan dibatalkan (rollback).
+
   return prisma.$transaction(async (tx) => {
-    // Kunci baris product sampai transaksi selesai. Tanpa ini, dua barang
-    // masuk bersamaan bisa sama-sama membaca stok lama, lalu salah satu
-    // menimpa hasil yang lain. Perhatikan backtick: ini tagged template,
-    // ${productId} dikirim sebagai parameter, bukan disambung ke teks SQL.
+
     await tx.$queryRaw`SELECT id FROM products WHERE id = ${productId} FOR UPDATE`;
 
     const product = await tx.product.findUnique({ where: { id: productId } });
@@ -21,7 +16,6 @@ export async function createStockIn({ productId, qty, unitCost, userId }) {
       return failure(409, "PRODUCT_NOT_ACTIVE", "Product belum disetujui owner");
     }
 
-    // product.avgCost berupa object Decimal, ubah ke number dulu.
     const newAvgCost = weightedAverageCost(
       product.stock,
       Number(product.avgCost),

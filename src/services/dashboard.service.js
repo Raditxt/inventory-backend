@@ -23,9 +23,6 @@ export async function getSummary({ period, start, end }) {
       _sum: { qtyChange: true, lossValue: true },
       _count: { _all: true },
     }),
-    // Prisma tidak bisa menjumlahkan stock x avg_cost, jadi pakai SQL.
-    // ::int dan ::float8 supaya hasilnya berupa number biasa. Tanpa cast,
-    // COUNT dan SUM menjadi BigInt di JavaScript, yang tidak bisa di-JSON-kan.
     prisma.$queryRaw`
       SELECT
         COUNT(*)::int AS "productCount",
@@ -56,7 +53,7 @@ export async function getSummary({ period, start, end }) {
     },
     damaged: {
       count: damagedAgg._count._all,
-      units: Math.abs(num(damagedAgg._sum.qtyChange)), // qtyChange negatif, tampilkan positif
+      units: Math.abs(num(damagedAgg._sum.qtyChange)), 
       lossValue,
     },
     profitAfterLoss: calcProfitAfterLoss(grossProfit, lossValue),
@@ -71,9 +68,7 @@ export async function getSummary({ period, start, end }) {
 }
 
 export async function getSalesTrend({ period, start, end }) {
-  // confirmed_at tersimpan sebagai UTC tanpa label zona. Langkah pertama
-  // (AT TIME ZONE 'UTC') memberi label UTC, langkah kedua mengubahnya ke jam
-  // dinding Jakarta. 'Asia/Jakarta' harus sama dengan TZ_NAME di period.js.
+
   const rows = await prisma.$queryRaw`
     SELECT
       to_char((confirmed_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS "day",
@@ -116,7 +111,7 @@ export async function getLowStock({ skip, take }) {
       unit: r.unit,
       stock: r.stock,
       minStock: r.minStock,
-      shortage: r.minStock - r.stock, // kekurangan dari batas minimum
+      shortage: r.minStock - r.stock, 
       isOutOfStock: r.stock === 0,
     })),
     total: countRows[0].total,

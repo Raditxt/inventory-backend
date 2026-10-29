@@ -5,7 +5,6 @@ import { parseSaleInput, SALE_STATUSES } from "@/validators/sale";
 import { serializeSale, serializeSaleSummary } from "@/serializers/sale";
 import { createSale, listSales } from "@/services/sale.service";
 
-// POST /api/sales  { items: [{ productId, qty }] }
 export async function POST(request) {
   const { auth, error } = requireAuth(request, ["MANAGER"]);
   if (error) return error;
@@ -20,7 +19,6 @@ export async function POST(request) {
   return fromResult(result, (d) => ({ sale: serializeSale(d.sale) }), 201);
 }
 
-// GET /api/sales?status=SUCCESS&page=1&limit=20
 export async function GET(request) {
   const { error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;

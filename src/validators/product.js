@@ -1,8 +1,6 @@
 const TEXT_FIELDS = ["sku", "name", "category", "unit"];
 
-// partial = true dipakai untuk PATCH: field boleh tidak dikirim.
-// Hanya field di whitelist ini yang pernah masuk ke `data`. Kalau client
-// mengirim status, stock, atau avgCost, semuanya diabaikan begitu saja.
+
 export function parseProductInput(body, { partial = false } = {}) {
   const data = {};
   const errors = [];
@@ -24,7 +22,7 @@ export function parseProductInput(body, { partial = false } = {}) {
     if (!partial) errors.push("price wajib diisi");
   } else if (
     typeof body.price !== "number" ||
-    !Number.isFinite(body.price) || // typeof NaN juga "number", jadi perlu dicek
+    !Number.isFinite(body.price) || 
     body.price < 0
   ) {
     errors.push("price harus berupa angka >= 0");

@@ -7,8 +7,6 @@ export function serializeAdjustment(a) {
     qtyChange: a.qtyChange,
     reason: a.reason,
     status: a.status,
-    // Number(null) hasilnya 0, bukan null. Tanpa pengecekan ini, adjustment
-    // yang belum punya nilai kerugian akan tampil sebagai "rugi Rp 0".
     lossValue: a.lossValue === null ? null : Number(a.lossValue),
     product: { id: a.product.id, sku: a.product.sku, name: a.product.name },
     requestedBy: { id: a.requestedBy.id, name: a.requestedBy.name },

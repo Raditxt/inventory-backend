@@ -6,7 +6,6 @@ import { serializeStockIn } from "@/serializers/stock-in";
 import { serializeProduct } from "@/serializers/product";
 import { createStockIn, listStockIns } from "@/services/stock-in.service";
 
-// POST /api/stock-ins
 export async function POST(request) {
   const { auth, error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
@@ -32,7 +31,6 @@ export async function POST(request) {
   );
 }
 
-// GET /api/stock-ins?productId=1&page=1&limit=20
 export async function GET(request) {
   const { error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;

@@ -6,7 +6,6 @@ import { calcTotal, calcTotalHpp } from "../src/domain/sale.js";
 import { calcLossValue } from "../src/domain/adjustment.js";
 import { addDays, todayInTz } from "../src/domain/period.js";
 
-// ---------- Pengaman ----------
 if (!process.argv.includes("--reset")) {
   console.error(
     "Script ini MENGHAPUS semua product, transaksi, adjustment, dan riwayat stok.\n" +
@@ -27,10 +26,6 @@ if (
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-// ---------- Angka acak yang bisa diulang ----------
-// Math.random() tidak bisa di-seed, jadi datanya berbeda tiap dijalankan.
-// Generator ini menghasilkan urutan yang sama untuk seed yang sama, jadi
-// demo selalu terlihat sama (cocok untuk screenshot dan perbandingan).
 function mulberry32(seed) {
   return function () {
     seed |= 0;
@@ -53,13 +48,7 @@ function weightedPick(list) {
   }
   return list[list.length - 1];
 }
-
-// Harga beli bervariasi sekitar +-4%, dibulatkan ke 100 rupiah.
 const driftCost = (base) => Math.round((base * (1 + (rand() - 0.5) * 0.08)) / 100) * 100;
-
-// ---------- Katalog ----------
-// price = harga jual, cost = harga beli dasar, sellQty = rentang qty per baris penjualan,
-// weight = seberapa sering dijual, initialQty/restockQty = barang masuk awal dan restok.
 const CATALOG = [
   { sku: "BRS-001", name: "Beras Premium 25kg", category: "Beras", unit: "karung", price: 330000, cost: 305000, minStock: 10, sellQty: [1, 4], weight: 3, initialQty: 40, restockQty: 30 },
   { sku: "BRS-002", name: "Beras Medium 25kg", category: "Beras", unit: "karung", price: 290000, cost: 268000, minStock: 10, sellQty: [1, 5], weight: 3, initialQty: 40, restockQty: 30 },
@@ -82,24 +71,17 @@ const CATALOG = [
 
 const CANCEL_REASONS = ["Customer batal", "Salah input jumlah barang", "Barang dikembalikan customer"];
 
-// ---------- Waktu ----------
 const NOW = new Date();
 const today = todayInTz(NOW);
 const start = addDays(today, -29);
 const days = [];
 for (let d = start; d <= today; d = addDays(d, 1)) days.push(d);
 
-// Jam dinding WIB -> Date.
 const wib = (day, hh, mm) =>
   new Date(`${day}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00+07:00`);
 const addMinutes = (date, n) => new Date(date.getTime() + n * 60000);
 
-// qty untuk adjustment dinamis: kurangi stok sampai `below` unit di bawah stok minimum.
 const reduceTo = (below) => (st) => Math.min(0, st.minStock - below - st.stock);
-
-// ---------- Rencana kejadian ----------
-// Di sini hanya MERENCANAKAN. Keputusan yang bergantung pada stok (misalnya jumlah
-// yang bisa dijual) diambil saat kejadian diproses, supaya stok tidak pernah minus.
 function buildEvents() {
   const events = [];
 
@@ -138,9 +120,6 @@ function buildEvents() {
     adj(9, "GLA-001", "DAMAGED", -8, "Kemasan sobek", "manager", "APPROVED"),
     adj(6, "SUS-001", "CORRECTION", -4, "Selisih hitung fisik", "manager", "REJECTED")
   );
-
-  // Kejadian hari ini, dijadwalkan relatif terhadap "sekarang" supaya tidak ada
-  // waktu di masa depan. Dua adjustment pertama membuat stok di bawah minimum.
   events.push(
     { at: addMinutes(NOW, -60), kind: "pendingProduct" },
     { at: addMinutes(NOW, -5), kind: "adjust", sku: "TLR-001", type: "DAMAGED", qty: reduceTo(5), reason: "Telur pecah saat pengiriman supplier", by: "manager", status: "APPROVED" },
@@ -149,11 +128,9 @@ function buildEvents() {
     { at: addMinutes(NOW, -2), kind: "pendingSale", items: [{ sku: "BRS-001", qty: 2 }, { sku: "MNY-001", qty: 12 }] }
   );
 
-  // sort() stabil dan mengurutkan Date lewat selisih milidetik.
   return events.sort((a, b) => a.at - b.at);
 }
 
-// ---------- Eksekusi ----------
 async function main() {
   const owner = await prisma.user.findUnique({ where: { email: "owner@demo.com" } });
   const manager = await prisma.user.findUnique({ where: { email: "manager@demo.com" } });
@@ -164,9 +141,6 @@ async function main() {
 
   console.log("Menghapus data lama...");
   await prisma.$executeRaw`TRUNCATE TABLE stock_movements, stock_adjustments, sale_items, sales, stock_ins, products RESTART IDENTITY CASCADE`;
-
-  // Kondisi stok dan HPP dihitung di memori sambil menjalankan kejadian, lalu
-  // ditulis ke tabel products di akhir.
   const state = new Map();
   for (const c of CATALOG) {
     const p = await prisma.product.create({
@@ -179,9 +153,7 @@ async function main() {
     state.set(c.sku, { id: p.id, price: c.price, minStock: c.minStock, stock: 0, avgCost: 0 });
   }
 
-  const created = new Map(); // key penjualan -> { id, lines }, untuk pembatalan
-
-  async function stockIn(sku, qty, unitCost, user, at) {
+  const created = new Map();   async function stockIn(sku, qty, unitCost, user, at) {
     const st = state.get(sku);
     const newAvg = weightedAverageCost(st.stock, st.avgCost, qty, unitCost);
     const row = await prisma.stockIn.create({
@@ -210,10 +182,10 @@ async function main() {
       const lines = [];
       for (const want of ev.items) {
         const st = state.get(want.sku);
-        const qty = Math.min(want.qty, st.stock); // tidak pernah melebihi stok
-        if (qty > 0) lines.push({ st, qty, price: st.price, hpp: st.avgCost });
+        const qty = Math.min(want.qty, st.stock); 
+          if (qty > 0) lines.push({ st, qty, price: st.price, hpp: st.avgCost });
       }
-      if (lines.length === 0) return; // semua barang habis
+      if (lines.length === 0) return; 
 
       const confirmedAt = addMinutes(ev.at, randInt(1, 10));
       const sale = await prisma.sale.create({
@@ -240,7 +212,7 @@ async function main() {
 
     async cancel(ev) {
       const rec = created.get(ev.key);
-      if (!rec) return; // penjualannya dilewati (stok habis)
+      if (!rec) return; 
       const user = who();
       await prisma.sale.update({
         where: { id: rec.id },
@@ -257,7 +229,7 @@ async function main() {
     async adjust(ev) {
       const st = state.get(ev.sku);
       const qtyChange = typeof ev.qty === "function" ? ev.qty(st) : ev.qty;
-      if (!qtyChange) return; // sudah di bawah target, tidak perlu apa-apa
+      if (!qtyChange) return; 
       if (ev.status === "APPROVED" && st.stock + qtyChange < 0) return;
 
       const requestedById = ev.by === "owner" ? owner.id : manager.id;
@@ -268,7 +240,6 @@ async function main() {
         return;
       }
 
-      // Keputusan owner 25 menit kemudian, tapi tidak melewati "sekarang".
       const decidedAt = new Date(Math.min(addMinutes(ev.at, 25).getTime(), NOW.getTime()));
       if (ev.status === "REJECTED") {
         await prisma.stockAdjustment.create({ data: { ...base, status: "REJECTED", decidedById: owner.id, decidedAt } });
@@ -333,7 +304,6 @@ async function main() {
     await prisma.product.update({ where: { id: st.id }, data: { stock: st.stock, avgCost: st.avgCost } });
   }
 
-  // Pemeriksaan: stok tiap product harus sama dengan jumlah riwayatnya.
   const mismatch = await prisma.$queryRaw`
     SELECT p.sku, p.stock, COALESCE(SUM(m.quantity_change), 0)::int AS history
     FROM products p LEFT JOIN stock_movements m ON m.product_id = p.id
