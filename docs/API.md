@@ -11,7 +11,7 @@ Format: semua request dan response berupa JSON.
 
 Token berlaku 8 jam. Kalau habis, server membalas 401 dan FE harus mengarahkan user ke halaman login.
 
-**CORS.** Browser dari origin lain boleh memanggil API ini. Di development semua origin diizinkan. Untuk produksi, origin diatur lewat environment `CORS_ORIGIN`.
+**CORS.** Browser dari origin lain boleh memanggil API ini. Di development semua origin diizinkan. Untuk produksi, origin yang boleh diatur lewat environment `CORS_ORIGIN`, berisi satu origin atau beberapa dipisah koma (misalnya domain FE produksi dan `http://localhost:5173` untuk development FE). Request dari origin lain akan diblokir browser.
 
 **Format response sukses**
 
