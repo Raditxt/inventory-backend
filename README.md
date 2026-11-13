@@ -105,7 +105,7 @@ Password default ada di `prisma/seed.js`, dan bisa diganti lewat variabel `SEED_
 ## Catatan deploy
 
 - Database harus di-host (bukan Docker lokal). Pakai connection string yang di-pool, dan samakan region server dengan region database.
-- Gunakan `JWT_SECRET` baru yang kuat, isi `CORS_ORIGIN` dengan domain frontend, dan jalankan `prisma migrate deploy` (bukan `migrate dev`).
+- Gunakan `JWT_SECRET` baru yang kuat, isi `CORS_ORIGIN` dengan domain frontend (boleh beberapa, dipisah koma), dan jalankan `prisma migrate deploy` (bukan `migrate dev`).
 - Jangan menjalankan `seed.js` dengan password default di server publik, dan jangan menjalankan `seed-demo.js` terhadap data sungguhan.
 - Pembatas percobaan login disimpan di memori proses. Itu cukup untuk satu server, tapi di platform serverless tiap instance punya hitungan sendiri. Untuk itu perlu penyimpanan bersama (misalnya Redis).
 
