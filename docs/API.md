@@ -310,7 +310,16 @@ Error: 400, 404, 409 `NOT_CANCELLABLE` (masih PENDING, gunakan DELETE), 409 `ALR
 
 ## Dashboard
 
-Hanya OWNER. Semua angka dalam rupiah. Zona waktu laporan: Asia/Jakarta (WIB), satu "hari" dihitung dari tengah malam WIB.
+Semua angka dalam rupiah.
+
+| Endpoint | OWNER | MANAGER |
+|---|---|---|
+| GET /dashboard/summary | ya | tidak |
+| GET /dashboard/sales-trend | ya | ya |
+| GET /dashboard/low-stock | ya | ya |
+
+Untuk dashboard manager: omzet hari ini didapat dari `sales-trend?from=<hari ini>&to=<hari ini>`, dan jumlah penjualan pending dari `total` di `GET /sales?status=PENDING&limit=1`.
+ Zona waktu laporan: Asia/Jakarta (WIB), satu "hari" dihitung dari tengah malam WIB.
 
 Endpoint `summary` dan `sales-trend` menerima periode lewat query `from` dan `to` (format `YYYY-MM-DD`, kedua tanggal **ikut dihitung**). Kalau tidak diisi, defaultnya 30 hari terakhir sampai hari ini. Maksimal 366 hari.
 
