@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrasi butuh koneksi langsung (bukan lewat pooler). Neon di Vercel
+    // menyediakan DATABASE_URL_UNPOOLED untuk itu; di lokal cukup DATABASE_URL.
+    url: process.env["DATABASE_URL_UNPOOLED"] ?? process.env["DATABASE_URL"],
   },
 });
