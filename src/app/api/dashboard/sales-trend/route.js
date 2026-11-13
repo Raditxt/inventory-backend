@@ -4,7 +4,7 @@ import { parsePeriod } from "@/domain/period";
 import { getSalesTrend } from "@/services/dashboard.service";
 
 export async function GET(request) {
-  const { error } = requireAuth(request, ["OWNER"]);
+  const { error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
 
   const parsed = parsePeriod(new URL(request.url).searchParams);

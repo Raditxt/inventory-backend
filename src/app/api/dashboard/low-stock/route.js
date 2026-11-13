@@ -4,7 +4,7 @@ import { parsePagination } from "@/lib/pagination";
 import { getLowStock } from "@/services/dashboard.service";
 
 export async function GET(request) {
-  const { error } = requireAuth(request, ["OWNER"]);
+  const { error } = requireAuth(request, ["OWNER", "MANAGER"]);
   if (error) return error;
 
   const { page, limit, skip } = parsePagination(new URL(request.url).searchParams);
